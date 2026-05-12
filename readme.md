@@ -19,7 +19,6 @@ We define each node as a data structure, which has the following :
 [ data | *left | *right ]
 ```
 
----
 
 ## Example
 
@@ -37,7 +36,6 @@ We define each node as a data structure, which has the following :
 - Every node on the right of 50 is greater than 50
 - This holds at every node — at 30, its left (20) is lesser, its right (40) is greater
 
----
 
 ## Advantage
 
@@ -49,7 +47,6 @@ At each level, we eliminate half the tree — that's where the O(log n) comes fr
 | Insert    | O(log n)    | O(n)                   |
 | Delete    | O(log n)    | O(n)                   |
 
----
 
 ## Three Core Operations
 
@@ -59,7 +56,6 @@ At each level, we eliminate half the tree — that's where the O(log n) comes fr
 
 All of which are executed starting from a node — usually the root.
 
----
 
 ## Degenerate Case
 
@@ -81,7 +77,6 @@ Insert : 10, 20, 30, 40, 50
 
 Every node only has a right child. You get no branching, no halving — just a straight chain. Search becomes O(n) because you traverse every node one by one, just like a linked list.
 
----
 
 # Node Initialisation Logic
 
@@ -89,11 +84,11 @@ Before any operation, we need to create a node. A node is just a chunk of memory
 
 ## How it works
 
-1. Allocate memory for a new node
-2. Assign the given value to `data`
-3. Set `left` to NULL — no left child yet
-4. Set `right` to NULL — no right child yet
-5. Return the newly created node
+1. I have to allocate memory for a new node, usually in heap, dynamic allocation via malloc.
+2. Then assign the given value to `data`, usually provide a pointer to a datastructure (or) a structure which can hold data and represent itself as an interger. Let's start with simple integer, no such special structure is used in first example.
+3. Set `left` to NULL — no left child yet, just in case of initial.
+4. Set `right` to NULL — no right child yet, just in case of initial again.
+5. Return the newly created node, this would be our root node. 
 
 ## Logic
 
@@ -105,6 +100,12 @@ create_node(value):
     node.right = NULL
     return node
 ```
+That's all, it is our create node logic : 
+
+- allocate memory to the node 
+- write the value to the node 
+- initially set both left and right nodes to be NULL - ie, they do not exist when we create our first node .
+- return the pointer to the node .
 
 ## Why NULL matters
 
@@ -112,34 +113,34 @@ Setting both pointers to NULL is not optional. Without it, both pointers hold ga
 
 NULL is the sentinel. It is what every traversal checks to know it has hit a dead end. Every node starts as a leaf — no children, both pointers explicitly NULL.
 
----
+Or, simply : NULL means non existent node. In C, we don't leave it undefined because the compiler can read data from that location; UB.
+
 
 # Find Logic
 
-Finding a value means walking the tree using the BST property as your guide. At every node, the BST property tells you exactly which direction to go. You never guess, you never backtrack.
+Finding a value means walking the tree using the BST property as your guide. At every node, the BST property tells you exactly which direction to go. You never guess, you never backtrack. This means, every time you access the data, you go only in one way, not the other way. Traversal in finding is essentially from top to bottom , root node to the leaf nodes. 
 
 ## The Core Idea
 
-At every node, ask one question :
+At every node, ask one question : Essentially, this is the logic behind finding the value. 
 
 - Value equals current node → **found it**
-- Value is less than current node → **go left**
-- Value is greater than current node → **go right**
+- Value is less than current node → **go left**, because if the value to find is lesser than the value of the current node, then as per the BST property, the lesser values are kept in left side.
+- Value is greater than current node → **go right**, becuase if the value to find is greater than the value of the current node, then as per the BST property, the greater values are kept in the right side. 
 - Hit NULL → **not in the tree**
 
----
 
 ## Recursive Model
 
 ### How it works
 
-The function calls itself on a smaller subtree at each step. Each call reduces the problem — instead of searching the whole tree, you're now searching just the left or right subtree. The base cases stop the recursion.
+The function calls itself on a smaller subtree at each step. Each call reduces the problem — instead of searching the whole tree, you're now searching just the left or right subtree. The base cases stop the recursion. But recursion in large trees may cause buffer overflow. I will avoid it entirely even in small trees, or use some logic based on the depth of the tree to switch between the recursive and iterative model. Here we will be implementing both the iterative and recursive model seperately. 
 
 **Base case 1 :** Node is NULL. You've walked off the tree. Value doesn't exist. Return NULL.
 
 **Base case 2 :** Node's data equals value. You found it. Return the node.
 
-**Recursive case :** Value is less → recurse into left subtree. Value is greater → recurse into right subtree.
+**Recursive case :** Value is less → recurse into left subtree. Value is greater → recurse into right subtree. This is inherent behavior, emergent from the BST property itself.
 
 ### Logic
 
@@ -150,6 +151,8 @@ find(node, value):
     if value < node.data  → return find(node.left,  value)
     if value > node.data  → return find(node.right, value)
 ```
+
+This is the entire logic of find. If it is NULL, it possibly means, you traversed entire tree to reach a leaf node and data yet not found, implies that the data is not in the tree. 
 
 ### Trace : find 60
 
@@ -183,11 +186,12 @@ find(50, 55)
   ← returns NULL
 ```
 
+You see the problem? See how many returns; each return is again just returned. This is a problem in the recursive model. That's why we have the iterative model, working through the if else and while loops.
+
 ### What's happening under the hood
 
-Each recursive call pushes a new frame onto the call stack. The call stack holds the state of each call — which node it was at, which direction it went. When a base case is hit, the return value bubbles back up through every frame. For a balanced tree of n nodes, the maximum depth of recursion is O(log n). For a degenerate tree, it's O(n) — and with a large enough tree, that risks a stack overflow.
+Each recursive call pushes a new frame onto the call stack. The call stack holds the state of each call — which node it was at, which direction it went. When a base case is hit, the return value bubbles back up through every frame. For a balanced tree of n nodes, the maximum depth of recursion is O(log n). For a degenerate tree, it's O(n) — and with a large enough tree, that risks a stack overflow. Ah. Not only in stack. Overflows also occur in heap. And, stack size in linux is somewhere say 8MB only(approx). So go for heap. Use malloc and develop your C skills. 
 
----
 
 ## Iterative Model
 
@@ -210,6 +214,15 @@ find(root, value):
 
     return NULL                                        // not found
 ```
+
+We have a current node and update the current node throughout the loop. 
+- If the current node equals null, then it means the data is not found and we return null, exit.
+- If the value to find is lesser than the current node's value, we set the current node to current node.left; essentially the BST property in use again. 
+- If the value to find is greater than the current node's value, we set the current node to current node.right; 
+- If the value is equal to the current node's value, then we have successfully found it and return the current node; 
+
+>[!NOTE]
+> By default, we start with the root node. But if you have pointer to any other node and you can consider passing the pointer to that node, works too, but always consider to start from root, as the subtrees might miss value that are not in them.
 
 ### Trace : find 40
 
@@ -234,11 +247,10 @@ find(root, value):
 - Easier to reason about memory behaviour in C
 - In practice, iterative find is what you'd use in production C code
 
----
 
 # Insert Logic
 
-Insertion follows the exact same path as find. The only difference : instead of returning when you hit NULL, you place the new node there.
+Insertion follows the exact same path as find. The only difference : instead of returning when you hit NULL, you place the new node there, ie create_node(value): set the current = create_node(value); that's it. The difference between them.
 
 ## The Core Idea
 
@@ -268,6 +280,14 @@ insert(node, value):
 
     return node                                      // return self, unchanged
 ```
+
+- The moment you hit the first NULL, it is where the data belongs. 
+- You create a node and return the pointer to the node. 
+- If the value is lesser than the node's value, you traverse left and perform the recursion by node = node.left.
+- If the value is greater than the node's value, you traverse right and perform the recursion by node = node.right.
+- If the value is already present, ie value == node's value, you do nothing. Or if you need to show the duplicates also, then add a structure instead of integer field and count the duplicates. But for this first example, I am going to do nothing. 
+- Finally we return the node.
+
 
 ### Trace : insert 45
 
@@ -306,7 +326,6 @@ Result :
 
 Each call does `node.left = insert(node.left, value)` and then `return node`. Even if nothing changed in the subtree, the node returns itself. This means the parent's pointer always gets correctly reassigned — whether a new node was created deep below or not. The entire path from root to insertion point gets its pointers explicitly rewired on the way back up.
 
----
 
 ## Iterative Model
 
@@ -340,6 +359,19 @@ insert(root, value):
     return root
 ```
 
+- first we need to create a new node and have it preassigned.
+- if the root is NULL, it implies, that there is no node created yet, so return the new node itself. 
+- we need to track the parent and current seperately and update the parrent as current node progresses to left or right. 
+- in each loop, we update the parent.
+- if the value to insert is lesser than the value of current node, then traverse left, assign current node to left node.
+- if the value to insert is greater than the value of the current node, then trverse right, assign current node to right node. 
+- in case of duplicacy, we return the root node itself, because it already has that value. (or as I said, add a counter to duplicate values in a data structure)
+- the loop ends if the current node is null, which implies that we can anchor to the parent to either modify the left or right nodes, both NULL. 
+- use the BST property. if the value is less than the parent node's value, then attach new node to left. 
+- if not, attach it to the right. 
+- finally return the root node. 
+
+
 ### Trace : insert 45
 
 ```
@@ -363,7 +395,6 @@ insert(root, value):
 
 When `current` becomes NULL, you've found the gap. But NULL gives you nothing — you can't set `NULL.left`. You need the node just above that NULL, the one whose pointer you'll update. That's `parent`. Without it, you'd know *where* in the tree the node belongs conceptually, but you'd have no pointer to actually attach it.
 
----
 
 # Inorder Traversal
 
@@ -371,7 +402,6 @@ When `current` becomes NULL, you've found the gap. But NULL gives you nothing �
 
 Applied recursively at every node. The defining property : inorder traversal of a BST always produces values in **sorted ascending order**. This is a direct consequence of the BST property.
 
----
 
 ## Recursive Model
 
@@ -429,7 +459,6 @@ inorder(50)
 
 Output : `20  30  40  50  60  70  80` — sorted. ✓
 
----
 
 ## Iterative Model
 
@@ -505,7 +534,6 @@ Output : `20  30  40  50  70` ✓
 
 If you only checked one, you'd exit early. When you pop and go right, `current` might briefly be NULL (no right child) while the stack still has nodes above. The OR keeps you going until both are exhausted.
 
----
 
 # Postorder Traversal
 
@@ -513,7 +541,6 @@ If you only checked one, you'd exit early. When you pop and go right, `current` 
 
 The current node is processed **last** — only after both its subtrees have been fully processed. This makes postorder the natural choice for operations where a node depends on its children being handled first, like freeing memory. You free children before the parent, never the other way around.
 
----
 
 ## Recursive Model
 
@@ -573,7 +600,6 @@ Output : `20  40  30  60  80  70  50`
 
 Root is always last. Every parent comes after its children.
 
----
 
 ## Iterative Model
 
