@@ -256,7 +256,6 @@ Insertion follows the exact same path as find. The only difference : instead of 
 
 Walk down the tree using the BST property. The moment you hit a NULL pointer — that gap is exactly where the new node belongs. Attach it there.
 
----
 
 ## Recursive Model
 
