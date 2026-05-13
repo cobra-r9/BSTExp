@@ -883,4 +883,211 @@ Recursive insertion: the mechanism is elegant and compact — the return-and-rew
 
 Iterative insertion: more mechanical — you're doing explicitly what the call stack was doing implicitly. Two pointers, a final comparison, a direct assignment. But O(1) space, no stack risk, and for very deep trees, meaningfully faster in practice due to no function call overhead per level.
 
+## Recursive Free in BST — Core Logic
 
+This should be mandatory before finishing a program. 
+As we are creating the structrue in heap memory, we are required to free it. If it is not freed after use, it stays in memory no matter what, then we have a memory leak. 
+
+### What "Freeing" Means Here
+
+Every node in your BST was created with `malloc` — meaning it lives on the heap. The heap does not manage itself. When your program is done with the tree, every single node must be explicitly passed to `free()`. If you don't, the memory stays allocated until the OS reclaims it at process exit. That's a memory leak.
+
+Freeing the BST means visiting every node and calling `free()` on it. The question is purely about **order** — which nodes do you free first, and why does that order matter enormously.
+
+
+### Why Order Is Critical
+
+This is the core constraint that governs everything:
+
+**You cannot free a node before you free its children.**
+
+If you free a node first, you lose the pointers stored inside it — `node->left` and `node->right`. Those are the only handles you have to reach the children. Once the node is freed, that memory is returned to the allocator and may be overwritten at any moment. Reading `node->left` after `free(node)` is undefined behavior. The children become permanently unreachable — orphaned on the heap forever.
+
+So the rule is: **children must be freed before their parent**. Always. Without exception.
+
+
+### Which Traversal Satisfies This Rule
+
+There are three classic recursive traversals:
+
+**Preorder — Root, Left, Right**
+Visits the root first. Violates the rule immediately — you'd free the parent before its children. Wrong.
+
+**Inorder — Left, Root, Right**
+Visits left subtree, then root, then right subtree. Frees the root in the middle — right subtree is still attached and unreachable after. Wrong.
+
+**Postorder — Left, Right, Root**
+Visits left subtree fully, then right subtree fully, then the root. By the time you reach the root, both subtrees are already completely freed. Root is now a standalone node with no live children. Safe to free. **This is the correct traversal.**
+
+Postorder is the only traversal where a node is visited strictly after all of its descendants.
+
+
+### The Mental Model
+
+Think of it as the tree being dismantled from the bottom up. You never touch a node until the entire subtree hanging below it has already been demolished. The leaves go first. Then their parents become leaves. Then those get freed. This continues upward until the root itself, which is the very last node freed.
+
+```
+         31              ← freed last
+        /  \
+       25   35           ← freed after their children
+      /       \
+     7         40        ← freed after their children
+    /             \
+   1               91    ← freed first (leaves)
+```
+
+Actual free order for this tree: 1, 7, 25, 91, 40, 35, 31.
+
+
+### Textual Pseudocode
+
+```
+free_tree(node):
+
+    if node is NULL:
+        return              ← base case, nothing to free
+
+    free_tree(node.left)    ← free entire left subtree first
+    free_tree(node.right)   ← free entire right subtree next
+    free(node)              ← now safe to free this node
+```
+
+Three lines of actual logic. The simplest of all BST operations — but the order of those three lines is everything. Swap any two and you get undefined behavior.
+
+
+### Walkthrough — Freeing the Example Tree
+
+```
+         31
+        /  \
+       25   35
+      /       \
+     7         40
+    /             \
+   1               91
+```
+
+**Call 1: free_tree(31)**
+- Not NULL
+- Recurse left → free_tree(25)
+- Paused.
+
+**Call 2: free_tree(25)**
+- Not NULL
+- Recurse left → free_tree(7)
+- Paused.
+
+**Call 3: free_tree(7)**
+- Not NULL
+- Recurse left → free_tree(1)
+- Paused.
+
+**Call 4: free_tree(1)**
+- Not NULL
+- Recurse left → free_tree(NULL) → returns immediately
+- Recurse right → free_tree(NULL) → returns immediately
+- free(1) ← **first node freed**
+- Returns.
+
+**Call 3 resumes: free_tree(7)**
+- Left subtree done
+- Recurse right → free_tree(NULL) → returns immediately
+- free(7) ← **second node freed**
+- Returns.
+
+**Call 2 resumes: free_tree(25)**
+- Left subtree done
+- Recurse right → free_tree(NULL) → returns immediately
+- free(25) ← **third node freed**
+- Returns.
+
+**Call 1 resumes: free_tree(31)**
+- Left subtree done
+- Recurse right → free_tree(35)
+- Paused.
+
+**Call 5: free_tree(35)**
+- Not NULL
+- Recurse left → free_tree(NULL) → returns immediately
+- Recurse right → free_tree(40)
+- Paused.
+
+**Call 6: free_tree(40)**
+- Not NULL
+- Recurse left → free_tree(NULL) → returns immediately
+- Recurse right → free_tree(91)
+- Paused.
+
+**Call 7: free_tree(91)**
+- Not NULL
+- Recurse left → free_tree(NULL) → returns immediately
+- Recurse right → free_tree(NULL) → returns immediately
+- free(91) ← **fourth node freed**
+- Returns.
+
+**Call 6 resumes: free_tree(40)**
+- free(40) ← **fifth node freed**
+- Returns.
+
+**Call 5 resumes: free_tree(35)**
+- free(35) ← **sixth node freed**
+- Returns.
+
+**Call 1 resumes: free_tree(31)**
+- Both subtrees done
+- free(31) ← **last node freed, root**
+- Returns.
+
+
+### The Call Stack Shape
+
+At the deepest point (while freeing node 1), the stack looked like:
+
+```
+free_tree(1)   ← executing
+free_tree(7)   ← waiting
+free_tree(25)  ← waiting
+free_tree(31)  ← waiting
+main()         ← waiting
+```
+
+The stack depth equals the height of the tree — O(h). Same space complexity as search and insert.
+
+
+### What Happens After free_tree Returns
+
+The nodes are gone. But the `root` pointer in `main` still holds the old address — now pointing at freed memory. This is a **dangling pointer**. Reading or writing through it is undefined behavior.
+
+The caller must set root to nullptr immediately after:
+
+```
+free_tree(root)
+root = nullptr
+```
+
+This is not optional hygiene — it's mandatory. A dangling pointer that looks valid is more dangerous than a null pointer, because dereferencing null segfaults immediately and loudly. Dereferencing a dangling pointer silently reads garbage or corrupts whatever the allocator put there next — harder to debug, more catastrophic.
+
+
+### Why This Can't Be Done Iteratively Without Extra Memory
+
+Recursive free is naturally elegant because the call stack implicitly tracks where you are in the tree. If you tried to do this iteratively, you'd need an explicit stack data structure (or a queue) to keep track of nodes to visit — because unlike search and insert which only go downward in one direction, postorder traversal needs to visit both subtrees and then come back to the parent. You can't do that with just a `curr` pointer. The iterative version requires O(h) explicit stack space anyway, so recursion is the natural and preferred approach here.
+
+
+### Complexity
+
+**Time:** O(n) — every node is visited exactly once, no node is skipped.
+
+**Space:** O(h) call stack — O(log n) balanced, O(n) skewed.
+
+
+### Summary of the Rule
+
+| Traversal | Order | Safe for free? |
+|---|---|---|
+| Preorder | Root → Left → Right | No — frees parent before children |
+| Inorder | Left → Root → Right | No — frees root before right subtree |
+| Postorder | Left → Right → Root | Yes — children always freed before parent |
+
+Postorder is the only valid choice. The logic is three lines. The constraint is one rule: children before parent.
+
+Though I hate the traversal stuffs, it is essential in the bst tree, which we should learn before doing the delete_node function. 
