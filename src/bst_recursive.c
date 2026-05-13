@@ -89,7 +89,7 @@ int main(void) {
   find_value(root, 201);
 
   int arr[] = {1, 2, 5, 7, 31, 32, 33, 35, 40, 100, 91, 25};
-  find_values(root, arr, sizeof(arr)/sizeof(int));
+  find_values(root, arr, sizeof(arr)/sizeof(arr[0]));
 
 
 
