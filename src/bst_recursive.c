@@ -46,6 +46,11 @@ Node *insert_node(Node *node, int value);
 void find_value(Node *node, int value);
 
 
+
+// prototype for the vind values function 
+// instead of taking int value, it takes an array of int values to loop through them, finding the values in array. Alongside with it, it should also take the size of array. 
+void find_values(Node *node, int *arr, int size);
+
 //==========================================[MAIN FUNCTION]
 // in c23, we no longer need to use void argument passeers. () means just void. 
 // but I will use it as a convenient. a habit. 
@@ -82,6 +87,10 @@ int main(void) {
   find_value(root, 100);
   find_value(root, 40);
   find_value(root, 201);
+
+  int arr[] = {1, 2, 5, 7, 31, 32, 33, 35, 40, 100, 91, 25};
+  find_values(root, arr, sizeof(arr)/sizeof(int));
+
 
 
 
@@ -123,13 +132,22 @@ bool search_node(Node *node, int value) {
   // step one : if the node is null, return false 
   if (node == nullptr) return false;
   // step two : if the value is less than node's value, recurse into left subtree.
-  if (value < node->value) return search_node(node->left, value);
-  // step three : if the value is greater than the node's value, recurse into right subtree.
-  if (value > node->value) return search_node(node->right, value);
-  // finally return true 
-  // optionally, we can add the value == node->value, but it is the only remaining case. we need not handle it. if all the above ifs are ruled out, the remaining if executes.
-  return true;
+  if (value < node->value) {
+    return search_node(node->left, value);
+    // fix 1 : fixed critical error : missing return : if(value < node->value) search_node(node->left, value)
+    // step three : if the value is greater than the node's value, recurse into right subtree.
+  } else if (value > node->value) {
+    return search_node(node->right, value);
+    // fix 2 : fixed critical error : missing return : if(value > node->value) search_node(node->right, value)
+    // Both, fix 1 and fix 2 : without return, the tree never traverses forward and it always returns true what so ever. 
+    // finally return true ; but based on fix 1 and fix 2, it is safer for us to compare value == node->value and return true; else return false. 
+  } else if (value == node->value) {
+    return true;
+  } else {
+    return false;
+  }
 }
+// migrated to if else instead of continious if blocks. 
 
 //---------------------------------------------------------------------------------------
 // define a insert node function which inserts the BST using recursive algorighm, just subtle from search_node 
@@ -139,8 +157,10 @@ Node *insert_node(Node *node, int value) {
   // step two : if it is not null, then we would have to compare the values of the node to recurse into the left or right subtree. 
   // if the value is less than the node's value, then we recurse into the left subtree. 
   if (value < node->value) node->left = insert_node(node->left, value);
+  // never forget to do node->left = assignemnt; because without it, not matter what, the value is never inserted and the tree is never traversed. 
   // if the value is greater than the node's value, then we recurse into the right subtree. 
   if (value > node->value) node->right = insert_node(node->right, value);
+  // similarly, never forget to assign node->right = assignemnt for the same reasons. 
   // if the value and node's value are equal, it implies there is a duplicate. We just don't consider the duplicates. But if we want to track duplicates also, then we implement a datastructue in place of int value and count the duplicates for each int value. So instead of node->value, we will be doing something like :
   // node->data.value in case the structure is embedded into the Node itself.
   // node->data->value in case the Node has a pointer to the data structure. (ie, additionally we might need functions to manage the data struture iteself, which I am not going to be implementing in this first example)
@@ -165,5 +185,13 @@ void find_value(Node *node, int value) {
   }
 }
 
-
+//---------------------------------------------------------------------------------------
+//the function definition for the wrapper function find_values.
+void find_values(Node *node, int *arr, int size) {
+  if (node == nullptr || arr == NULL) {
+    puts("WARN: Unable to search in an invalid node (or) array");
+  } else {
+    for (int i = 0; i < size; i++) find_value(node, arr[i]);
+  }
+}
 
