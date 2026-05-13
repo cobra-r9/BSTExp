@@ -29,6 +29,11 @@ typedef struct [[gnu::packed]] Node {
 // we use malloc for this purpose. 
 Node *create_node(int value);
 
+// prototype the search node function 
+// we need this function to take a value, the pointer to the root node, and return a boolean value. 
+// boolean? yes, now c23 officially support boolean and what was previously in stdbool.h was merged into stdlib.h, essentially a bool type. previously, we do it even without bool via returning int value 0 false, 1 true and comparing them to evaluate it. 
+bool search_node(Node *node, int value);
+
 //==========================================[MAIN FUNCTION]
 // in c23, we no longer need to use void argument passeers. () means just void. 
 // but I will use it as a convenient. a habit. 
@@ -40,6 +45,16 @@ int main(void) {
   // now that we need to initialise our first root node with some value; we have decent 31 as a value.
   Node *root = create_node(31);
   printf("Initialised root node : value = %d\n", root->value);
+
+  // now that we need to search for the value 31, which is our first value. 
+  // we know that search_node returns a bool type. we can use it directly in if. 
+  if (search_node(root, 31)) {
+    printf("Value Found! %d is in the BST\n", 31);
+  } else {
+    printf("Value Not Found! %d is not in the BST\n", 31);
+  }
+
+
 }
 
 
@@ -68,4 +83,18 @@ Node *create_node(int value) {
   // finally, time to return the pointer to the node. 
   return node;
 
+}
+
+
+// define a search node function which searches the BST using recursive algorigthm as mentioned in the readme.md 
+bool search_node(Node *node, int value) {
+  // step one : if the node is null, return false 
+  if (node == nullptr) return false;
+  // step two : if the value is less than node's value, recurse into left subtree.
+  if (value < node->value) search_node(node->left, value);
+  // step three : if the value is greater than the node's value, recurse into right subtree.
+  if (value > node->value) search_node(node->right, value);
+  // finally return true 
+  // optionally, we can add the value == node->value, but it is the only remaining case. we need not handle it. if all the above ifs are ruled out, the remaining if executes.
+  return true;
 }
