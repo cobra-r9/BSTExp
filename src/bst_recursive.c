@@ -51,6 +51,21 @@ void find_value(Node *node, int value);
 // instead of taking int value, it takes an array of int values to loop through them, finding the values in array. Alongside with it, it should also take the size of array. 
 void find_values(Node *node, int *arr, int size);
 
+// prototype for free_tree function. 
+// this deletes entire subtrees from the given point. 
+// pseudo code looks like this : 
+//free_tree(node):
+
+//    if node is NULL:
+//        return              ← base case, nothing to free
+
+//    free_tree(node.left)    ← free entire left subtree first
+//    free_tree(node.right)   ← free entire right subtree next
+//    free(node)              ← now safe to free this node
+
+// Obviously, we are not going to return anything. 
+void free_tree(Node *node);
+
 //==========================================[MAIN FUNCTION]
 // in c23, we no longer need to use void argument passeers. () means just void. 
 // but I will use it as a convenient. a habit. 
@@ -90,6 +105,14 @@ int main(void) {
 
   int arr[] = {1, 2, 5, 7, 31, 32, 33, 35, 40, 100, 91, 25};
   find_values(root, arr, sizeof(arr)/sizeof(arr[0]));
+
+  // now let us free the left subtree;
+  free_tree(root->left);
+  root->left = nullptr; // mandatory; else it is a dangling pointer. 
+  find_value(root, 25); // will not be found due to deletion of tree. 
+  // now that we need to free our tree; put it out of existence and assign nullptr;
+  free_tree(root);
+  root = nullptr;
 
 
 
@@ -172,6 +195,55 @@ Node *insert_node(Node *node, int value) {
   return node; 
 }
 
+//---------------------------------------------------------------------------------------
+// define a fucntion to free_tree from a given node recursively. 
+
+void free_tree(Node *node) {
+  // we free it if it is not null;
+  if (node != nullptr) {
+    // free the left or right subtree, then free the node. 
+    // I choose to free left subtree first 
+    free_tree(node->left);
+    // then right subtree. 
+    free_tree(node->right);
+    // finally free the current node. 
+    free(node);
+  }
+}
+
+// it is the responsibility of the caller to set the pointer to nullptr or NULL; whatever. 
+
+// for the AUTO NULLPTR approach, to set each node to null, we would need a different approach. 
+// see, when a pointer is passed, it is only a copy of pointer. but deref it, you get the same value because both the original pointer and copied pointer, both points to the same address;
+// but if you need to modify the pointer itself, then, we need to pass teh pointer to the pointer;
+// ie, istead of passing node (type = Node *); we pass a &node (type = Node **)
+// dereferencing this once *(&node) will give us the node (ie the address which the pointer holds)
+// dereferencing this twice **(&node) will give us the value of the address the pointer holds, ie the original node in heap;
+// so, essentially 
+// void free_tree(Node **node) {
+//     if (*node != nullptr) {
+//         free_tree(&((*node)->left));
+//         // this is because (*node)->left is a type Node *;
+//         // but free_tree requires Node **, so we reference it again using & to pass it to the function. Same goes below too. 
+//         free_tree(&((*node)->right));
+//         free(*node);
+//         *node = nullptr;
+//     }
+// }
+// node : type Node **
+// *node : type Node *
+// **node : type Node 
+// we free Node * type as expected by free. 
+// the free_tree expects Node ** as per definition. 
+// each Node type has a left, right whose types are Node *;
+// we  (**node).left is having a type of Node *, ie, the left. or right.
+// or (*node)->left is having the type Node *
+// or &((*node)->left) has type Node **, which is what free_tree expects to be passed. 
+// if you follow this reasonling, everything feels understandable. 
+
+
+// uncomment these stuffs if you want the function to set null instead of caller setting the null; 
+
 //--------------------------------------------------------------------------------------
 // the function definition for the wrapper function  :find_value. Nothing to explain, you get if only via if blocks .
 void find_value(Node *node, int value) {
@@ -197,4 +269,5 @@ void find_values(Node *node, int *arr, int size) {
     for (int i = 0; i < size; i++) find_value(node, arr[i]);
   }
 }
+
 
