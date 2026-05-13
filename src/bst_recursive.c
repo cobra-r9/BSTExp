@@ -156,14 +156,17 @@ Node *insert_node(Node *node, int value) {
   if (node == nullptr) return create_node(value);
   // step two : if it is not null, then we would have to compare the values of the node to recurse into the left or right subtree. 
   // if the value is less than the node's value, then we recurse into the left subtree. 
-  if (value < node->value) node->left = insert_node(node->left, value);
-  // never forget to do node->left = assignemnt; because without it, not matter what, the value is never inserted and the tree is never traversed. 
-  // if the value is greater than the node's value, then we recurse into the right subtree. 
-  if (value > node->value) node->right = insert_node(node->right, value);
-  // similarly, never forget to assign node->right = assignemnt for the same reasons. 
-  // if the value and node's value are equal, it implies there is a duplicate. We just don't consider the duplicates. But if we want to track duplicates also, then we implement a datastructue in place of int value and count the duplicates for each int value. So instead of node->value, we will be doing something like :
-  // node->data.value in case the structure is embedded into the Node itself.
-  // node->data->value in case the Node has a pointer to the data structure. (ie, additionally we might need functions to manage the data struture iteself, which I am not going to be implementing in this first example)
+  if (value < node->value) {
+    node->left = insert_node(node->left, value);
+    // never forget to do node->left = assignemnt; because without it, not matter what, the value is never inserted and the tree is never traversed. 
+    // if the value is greater than the node's value, then we recurse into the right subtree. 
+  } else if (value > node->value) { 
+    node->right = insert_node(node->right, value);
+    // similarly, never forget to assign node->right = assignemnt for the same reasons. 
+    // if the value and node's value are equal, it implies there is a duplicate. We just don't consider the duplicates. But if we want to track duplicates also, then we implement a datastructue in place of int value and count the duplicates for each int value. So instead of node->value, we will be doing something like :
+    // node->data.value in case the structure is embedded into the Node itself.
+    // node->data->value in case the Node has a pointer to the data structure. (ie, additionally we might need functions to manage the data struture iteself, which I am not going to be implementing in this first example)
+  }
   
   // finally, we will be returning the node. As mentioned in readme, the recursive call returns the pointer to node after each call finishes, now that we are in the final call, needing to return the node itself, so that the insert_node in step 2 can function properly. 
   return node; 
@@ -188,7 +191,7 @@ void find_value(Node *node, int value) {
 //---------------------------------------------------------------------------------------
 //the function definition for the wrapper function find_values.
 void find_values(Node *node, int *arr, int size) {
-  if (node == nullptr || arr == NULL) {
+  if (node == nullptr || arr == nullptr) {
     puts("WARN: Unable to search in an invalid node (or) array");
   } else {
     for (int i = 0; i < size; i++) find_value(node, arr[i]);
