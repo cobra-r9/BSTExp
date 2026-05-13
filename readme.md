@@ -1,6 +1,11 @@
 
 ## Introduction
 
+>[!NOTE]
+> **For running the program :**
+> Use `make run SRC="./src/filename"`
+> where, you can run each program in the src directory by specifing it's name in place of filename. 
+
 ### What is a BST?
 
 A BST is a special type of binary tree that maintains elements in sorted order. For every node: all nodes in its left subtree have values less than the node's value, and all nodes in the right subtree have values greater. This property ensures each comparison allows skipping about half the remaining tree, making BST operations much faster than linear structures like arrays or linked lists. [geeksforgeeks](https://www.geeksforgeeks.org/dsa/introduction-to-binary-search-tree/)
